@@ -7,7 +7,7 @@ from .paginations import ProductPagination
 from .filters import ProductFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.models import User
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 
 
@@ -164,5 +164,8 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
 
 
 
-
+class DicountCodeViewSet(viewsets.ModelViewSet):
+    queryset = DiscountCode.objects.all()
+    serializer_class = DiscountCodeSerializer
+    permission_classes = (IsAdminUser,)
 

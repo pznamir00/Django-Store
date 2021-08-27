@@ -226,3 +226,12 @@ class OrderSerializer(serializers.ModelSerializer):
         if 'payment_method' not in data or 'shipping_method' not in data:
             raise serializers.ValidationError({'message': ["No field payment_method or shipping_method in request"]})
         return data
+
+
+
+
+
+class DiscountCodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DiscountCode
+        fields = ('pk', 'value', 'start_at', 'end_at',)

@@ -159,3 +159,15 @@ class UserProfile(ModelWithAddress):
         return self.user.email + ' profile'
 
 
+
+
+
+class DiscountCode(models.Model):
+    value = models.CharField(max_length=10)
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    def __str__(self):
+        return self.value
+
+
