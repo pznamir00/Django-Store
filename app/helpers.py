@@ -5,6 +5,7 @@ from django.db import models
 
 
 
+
 class ModelAutoSlugSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['slug'] = slugify(validated_data['name'])
@@ -14,6 +15,7 @@ class ModelAutoSlugSerializer(serializers.ModelSerializer):
         validated_data['slug'] = slugify(validated_data['name'])
         self.Meta.model.objects.filter(pk=instance.pk).update(**validated_data)
         return instance
+
 
 
 

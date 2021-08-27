@@ -3,7 +3,7 @@ from colorfield.fields import ColorField
 from django.contrib.auth.models import User
 from phonenumber_field.modelfields import PhoneNumberField
 from .helpers import ModelWithAddress
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 
 
@@ -132,9 +132,10 @@ class Order(ModelWithAddress):
     payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True)
     shipping_method = models.ForeignKey(ShippingMethod, on_delete=models.SET_NULL, null=True)
     products = models.ManyToManyField(SizeProductRelation, through='OrderSizeProductRelation')
+    with_discount = models.BooleanField(default=False)
 
     def __str__(self):
-        return 'Order #' + self.pk
+        return 'Order #' + str(self.pk)
 
 
 
@@ -163,7 +164,8 @@ class UserProfile(ModelWithAddress):
 
 
 class DiscountCode(models.Model):
-    value = models.CharField(max_length=10)
+    code = models.CharField(max_length=10)
+    value = models.DecimalField(max_digits=3, decimal_places=2, validators=[MinValueValidator(0.01), MaxValueValidator(0.99)])
     start_date = models.DateField()
     end_date = models.DateField()
 

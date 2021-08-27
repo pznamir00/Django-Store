@@ -133,6 +133,10 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
     serializer_class = OrderSerializer
     permission_classes = (NoUpdateAndDestroyOnlyForAdmin,)
 
+    def __get_discount(self, code):
+        res = DiscountCode.objects.filter(code=code)
+        return res.first() if res.exists() else None
+
     def get_queryset(self):
         queryset = Order.objects.all()
         if self.request.user.is_authenticated:
@@ -143,6 +147,7 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
 
     def perform_create(self, serializer):
         cart_data = serializer.validated_data.pop('cart')
+        discount_code = serializer.validated_data.pop('discount_code') if 'discount_code' in serializer.validated_data else ''
         total = 0.00
         order = serializer.save(user=self.request.user, total=total)
         for sample in cart_data['products']:
@@ -156,9 +161,14 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
                 size_product_relation=size_product_relation,
                 quantity=quantity
             )
-        total += float(order.payment_method.price)
-        total += float(order.shipping_method.price)
-        return order.save(total=total)
+        order.total += float(order.payment_method.price)
+        order.total += float(order.shipping_method.price)
+        discount = self.__get_discount(discount_code)
+        if discount:
+            diff = 1.0 - discount.value
+            order.total *= diff
+            order.with_discount = True
+        return order.save()
 
 
 
