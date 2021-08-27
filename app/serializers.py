@@ -184,30 +184,33 @@ class CartSerializer(serializers.Serializer):
         required=True
     )
 
+    def validate(self, data):
+        data = dict(data)
+        if 'products' not in data:
+            raise serializers.ValidationError({'message': ["Cart must have 'product' field"]})
+        for sample in data['products']:
+            try:
+                relation = SizeProductRelation.objects.get(pk=sample['product_size_relation'])
+                if relation.quantity < sample['quantity']:
+                    raise serializers.ValidationError({'message': ["Quantity of your product in cart cannot be greater than available"]})
+            except KeyError:
+                raise serializers.ValidationError({'message': ["Wrong field names. Excepted only product_size_relation and quantity parameters in each sample."]})
+            except ObjectDoesNotExist:
+                raise serializers.ValidationError({'message': ["This size or product does not exist"]})
+        return data
+
     def to_representation(self, value):
         data = super(CartSerializer, self).to_representation(value)
         for index, sample in enumerate(data['products']):
-            try:
-                relation = SizeProductRelation.objects.get(pk=sample['product_size_relation'])
-                product_data = ProductSimpleSerializer(instance=relation.product).data
-                if relation.quantity < sample['quantity']:
-                    raise serializers.ValidationError({
-                        'message': ["Quantity of your product in cart cannot be greater than available"]
-                    })
-                data['products'][index] = {
-                    'product': product_data,
-                    'size': relation.size.value,
-                    'quantity': sample['quantity']
-                }
-            except KeyError:
-                raise serializers.ValidationError({
-                    'message': ["Wrong field inside products variable. Excepted only product_size_relation and quantity parameters in each sample."]
-                })
-            except ObjectDoesNotExist:
-                raise serializers.ValidationError({
-                    'message': ["This size or product does not exist"]
-                })
+            relation = SizeProductRelation.objects.get(pk=sample['product_size_relation'])
+            product_data = ProductSimpleSerializer(instance=relation.product).data
+            data['products'][index] = {
+                'product': product_data,
+                'size': relation.size.value,
+                'quantity': sample['quantity']
+            }
         return data
+
 
 
 
@@ -216,5 +219,10 @@ class OrderSerializer(serializers.ModelSerializer):
     cart = CartSerializer(required=True, write_only=True)
     class Meta:
         model = Order
-        fields = ('pk', 'user', 'created_at', 'total', 'payment_method', 'shipping_method', 'products')
-        read_only_fields = ('pk', 'created_at', 'total', 'products')
+        fields = ('pk', 'user', 'created_at', 'total', 'payment_method', 'shipping_method', 'cart')
+        read_only_fields = ('pk', 'created_at', 'total')
+
+    def validate(self, data):
+        if 'payment_method' not in data or 'shipping_method' not in data:
+            raise serializers.ValidationError({'message': ["No field payment_method or shipping_method in request"]})
+        return data

@@ -126,7 +126,7 @@ class ShippingMethod(models.Model):
 
 
 class Order(ModelWithAddress):
-    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     total = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0.01)])
     payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True)

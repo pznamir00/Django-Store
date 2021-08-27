@@ -1,6 +1,6 @@
 from rest_framework import viewsets, generics, mixins
 from rest_framework.filters import SearchFilter
-from .permissions import IsAdminUserOrReadOnly
+from .permissions import IsAdminUserOrReadOnly, NoUpdateAndDestroyOnlyForAdmin
 from .models import *
 from .serializers import *
 from .paginations import ProductPagination
@@ -130,8 +130,37 @@ class CartAPIView(generics.RetrieveAPIView):
 
 
 class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
-    queryset = Order.objects.all()
     serializer_class = OrderSerializer
+    permission_classes = (NoUpdateAndDestroyOnlyForAdmin,)
+
+    def get_queryset(self):
+        queryset = Order.objects.all()
+        if self.request.user.is_authenticated:
+            if self.request.user.is_superuser:
+                return queryset
+            return queryset.filter(user=self.request.user)
+        return []
+
+    def perform_create(self, serializer):
+        cart_data = serializer.validated_data.pop('cart')
+        total = 0.00
+        order = serializer.save(user=self.request.user, total=total)
+        for sample in cart_data['products']:
+            quantity = sample['quantity']
+            size_product_relation = SizeProductRelation.objects.get(pk=sample['product_size_relation'])
+            size_product_relation.quantity -= quantity
+            size_product_relation.save()
+            total += quantity * float(size_product_relation.product.price)
+            OrderSizeProductRelation.objects.create(
+                order=order,
+                size_product_relation=size_product_relation,
+                quantity=quantity
+            )
+        total += float(order.payment_method.price)
+        total += float(order.shipping_method.price)
+        return order.save(total=total)
+
+
 
 
 
