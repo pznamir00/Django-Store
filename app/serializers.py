@@ -4,6 +4,48 @@ from .helpers import ModelAutoSlugSerializer
 from drf_extra_fields.fields import Base64ImageField
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from dj_rest_auth.registration.serializers import RegisterSerializer
+
+
+
+
+
+class ExtendedRegisterSerializer(RegisterSerializer):
+    phone_number = serializers.CharField()
+    street = serializers.CharField()
+    home_number = serializers.CharField()
+    apartament_number = serializers.CharField()
+    city = serializers.CharField()
+    zip_code = serializers.CharField()
+
+    def get_cleaned_data(self):
+        super(ExtendedRegisterSerializer, self).get_cleaned_data()
+        return {
+            'username': self.validated_data.get('username', ''),
+            'password1': self.validated_data.get('password1', ''),
+            'password2': self.validated_data.get('password2', ''),
+            'email': self.validated_data.get('email', ''),
+            'phone_number': self.validated_data.get('phone_number', ''),
+            'street': self.validated_data.get('street', ''),
+            'home_number': self.validated_data.get('home_number', ''),
+            'apartament_number': self.validated_data.get('apartament_number', ''),
+            'city': self.validated_data.get('city', ''),
+            'zip_code': self.validated_data.get('zip_code', '')
+        }
+
+    def save(self, request):
+        user = super(ExtendedRegisterSerializer, self).save(request)
+        UserProfile.objects.create(
+            user=user,
+            phone_number=request._data['phone_number'],
+            street=request._data['street'],
+            home_number=request._data['home_number'],
+            apartament_number=request._data['apartament_number'],
+            city=request._data['city'],
+            zip_code=request._data['zip_code']
+        )
+        return user
+
 
 
 
@@ -98,9 +140,9 @@ class ProductSimpleSerializer(ProductSerializer):
         fields = ('name', 'slug', 'description', 'color', 'brand', 'subcategory', 'sizes', 'pictures', 'base64files', 'price')
         read_only_fields = ('slug',)
         extra_kwargs = {
-            'description': { 'write_only': True }, 
-            'color': { 'write_only': True }, 
-            'brand': { 'write_only': True }, 
+            'description': { 'write_only': True },
+            'color': { 'write_only': True },
+            'brand': { 'write_only': True },
             'subcategory': { 'write_only': True }
         }
 

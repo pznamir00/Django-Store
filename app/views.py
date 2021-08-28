@@ -9,6 +9,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.models import User
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from .helpers import DiscountsValidator
 
 
 
@@ -133,10 +134,6 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
     serializer_class = OrderSerializer
     permission_classes = (NoUpdateAndDestroyOnlyForAdmin,)
 
-    def __get_discount(self, code):
-        res = DiscountCode.objects.filter(code=code)
-        return res.first() if res.exists() else None
-
     def get_queryset(self):
         queryset = Order.objects.all()
         if self.request.user.is_authenticated:
@@ -163,7 +160,7 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
             )
         order.total += float(order.payment_method.price)
         order.total += float(order.shipping_method.price)
-        discount = self.__get_discount(discount_code)
+        discount = DiscountsValidator.get_if_exists(discount_code, DiscountCode.objects.all())
         if discount:
             diff = 1.0 - discount.value
             order.total *= diff
@@ -178,4 +175,3 @@ class DicountCodeViewSet(viewsets.ModelViewSet):
     queryset = DiscountCode.objects.all()
     serializer_class = DiscountCodeSerializer
     permission_classes = (IsAdminUser,)
-

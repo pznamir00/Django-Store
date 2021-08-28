@@ -8,6 +8,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 
 
 
+
 class Category(models.Model):
     name = models.CharField(max_length=64, unique=True)
     slug = models.SlugField(max_length=64)
@@ -74,7 +75,7 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name        
+        return self.name
 
 
 
@@ -171,5 +172,3 @@ class DiscountCode(models.Model):
 
     def __str__(self):
         return self.value
-
-
