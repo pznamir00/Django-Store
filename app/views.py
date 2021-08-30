@@ -134,6 +134,11 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
     serializer_class = OrderSerializer
     permission_classes = (NoUpdateAndDestroyOnlyForAdmin,)
 
+    """
+    returns empty list if user not logged,
+    returns list of user's orders if is logged,
+    returns all data is user is admin
+    """
     def get_queryset(self):
         queryset = Order.objects.all()
         if self.request.user.is_authenticated:
@@ -143,16 +148,21 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
         return []
 
     def perform_create(self, serializer):
+        #cart object
         cart_data = serializer.validated_data.pop('cart')
+        #discount code (if exists, else None)
         discount_code = serializer.validated_data.pop('discount_code') if 'discount_code' in serializer.validated_data else ''
+        #start of calculating total price
         total = 0.00
         order = serializer.save(user=self.request.user, total=total)
         for sample in cart_data['products']:
             quantity = sample['quantity']
             size_product_relation = SizeProductRelation.objects.get(pk=sample['product_size_relation'])
+            #update of quantity of those size_product_relations
             size_product_relation.quantity -= quantity
             size_product_relation.save()
-            total += quantity * float(size_product_relation.product.price)
+            #increase total
+            total += quantity * float(size_product_relation.product.price) 
             OrderSizeProductRelation.objects.create(
                 order=order,
                 size_product_relation=size_product_relation,
@@ -162,6 +172,7 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
         order.total += float(order.shipping_method.price)
         discount = DiscountsValidator.get_if_exists(discount_code, DiscountCode.objects.all())
         if discount:
+            #consider discount code if is existing and is correct
             diff = 1.0 - discount.value
             order.total *= diff
             order.with_discount = True

@@ -6,7 +6,7 @@ from datetime import date
 
 
 
-
+#serializer that will create slug base on name before save
 class ModelAutoSlugSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['slug'] = slugify(validated_data['name'])
@@ -20,7 +20,7 @@ class ModelAutoSlugSerializer(serializers.ModelSerializer):
 
 
 
-
+#extend for models that include address data (User and Order)
 class ModelWithAddress(models.Model):
     street = models.CharField(max_length=128)
     home_number = models.CharField(max_length=16)
@@ -31,7 +31,7 @@ class ModelWithAddress(models.Model):
 
 
 
-
+#check if code exists and is active
 class DiscountsValidator:
     def get_if_exists(code, queryset):
         res = queryset.filter(code=code)

@@ -19,6 +19,7 @@ class ExtendedRegisterSerializer(RegisterSerializer):
     zip_code = serializers.CharField()
 
     def get_cleaned_data(self):
+        #validate during registration
         super(ExtendedRegisterSerializer, self).get_cleaned_data()
         return {
             'username': self.validated_data.get('username', ''),
@@ -35,6 +36,7 @@ class ExtendedRegisterSerializer(RegisterSerializer):
 
     def save(self, request):
         user = super(ExtendedRegisterSerializer, self).save(request)
+        #immidenty create profile after user's save
         UserProfile.objects.create(
             user=user,
             phone_number=request._data['phone_number'],
@@ -117,12 +119,16 @@ class SizeProductRelationSerializer(serializers.ModelSerializer):
 
 
 
-
+#base serializer for ProductSimpleSerializer and ProductDetailSerializer
 class ProductSerializer(ModelAutoSlugSerializer):
+    #objects of SizeProductRelation instance
     sizes = SizeProductRelationSerializer(many=True)
+    #only for input (which requires only base64 encoded files)
     base64files = PictureSerializer(many=True, write_only=True)
+    #objects of Picture instance
     pictures = PictureSerializer(many=True, read_only=True)
 
+    #create sizes and pictures objects for instance
     def _set_sizes_and_files(self, instance, sizes, files):
         for size in sizes:
             SizeProductRelation.objects.create(**size, product=instance)
@@ -162,6 +168,7 @@ class ProductDetailSerializer(ProductSerializer):
         fields = '__all__'
         read_only_fields = ('id', 'slug', 'created_at')
 
+    #delete sizes and pictures of instance that could update object's assets
     def __clear_sizes_and_files(self, instance):
         for size in instance.sizes.all():
             size.delete()
@@ -171,7 +178,9 @@ class ProductDetailSerializer(ProductSerializer):
     def update(self, instance, validated_data):
         sizes, base64files = validated_data.pop('sizes'), validated_data.pop('base64files')
         instance = super(ProductDetailSerializer, self).update(instance, validated_data)
+        #clean sizes and pictures
         self.__clear_sizes_and_files(instance)
+        #save new
         self._set_sizes_and_files(instance, sizes, base64files)
         return instance
 
@@ -226,6 +235,20 @@ class CartSerializer(serializers.Serializer):
         required=True
     )
 
+    """
+    actually this method checks if user has appropriate data in his own cart.
+    only one allow is {
+       'products': [
+           {
+               product_size_relation: ...,
+               quantity: ...
+           },
+           ...
+       ]
+     }
+    where product_size_relation is id of SizeProductRelation instance and quantity is selected value by user
+    ! and cannot be greater than available
+    """ 
     def validate(self, data):
         data = dict(data)
         if 'products' not in data:
@@ -265,6 +288,10 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = ('pk', 'created_at', 'total')
 
     def validate(self, data):
+        """
+        Payment_method and shipping_method are not required because there is capability to delete payment and app won't be deleting
+        orders, thats why it's necessery to look up this data here
+        """
         if 'payment_method' not in data or 'shipping_method' not in data:
             raise serializers.ValidationError({'message': ["No field payment_method or shipping_method in request"]})
         return data
