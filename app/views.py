@@ -133,6 +133,7 @@ class CartAPIView(generics.RetrieveAPIView):
 class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     serializer_class = OrderSerializer
     permission_classes = (NoUpdateAndDestroyOnlyForAdmin,)
+    lookup_field = 'number'
 
     """
     returns empty list if user not logged,

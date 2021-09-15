@@ -1,9 +1,10 @@
 from django.db import models
-from colorfield.fields import ColorField
 from django.contrib.auth.models import User
-from phonenumber_field.modelfields import PhoneNumberField
-from .helpers import HasAddress
 from django.core.validators import MaxValueValidator, MinValueValidator
+from address.models import AddressField
+from autoslug import AutoSlugField
+from phonenumber_field.modelfields import PhoneNumberField
+from colorfield.fields import ColorField
 import uuid
 
 
@@ -12,7 +13,7 @@ import uuid
 
 class Category(models.Model):
     name = models.CharField(max_length=64, unique=True)
-    slug = models.SlugField(max_length=64)
+    slug = AutoSlugField(populate_from='name')
 
     def __str__(self):
         return self.name
@@ -36,7 +37,7 @@ class SubCategory(models.Model):
 class Brand(models.Model):
     name = models.CharField(max_length=64, unique=True)
     description = models.TextField()
-    slug = models.CharField(max_length=64)
+    slug = AutoSlugField(populate_from='name')
     logo = models.FileField(upload_to='brands', null=True, blank=True)
 
     def __str__(self):
@@ -67,7 +68,7 @@ class Size(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=64, unique=True)
-    slug = models.SlugField(max_length=64)
+    slug = AutoSlugField(populate_from='name')
     description = models.TextField()
     price = models.DecimalField(max_digits=8, decimal_places=2, default=.0)
     color = models.ForeignKey(Color, on_delete=models.SET_NULL, blank=True, null=True)
@@ -127,7 +128,7 @@ class ShippingMethod(models.Model):
 
 
 
-class Order(models.Model, HasAddress):
+class Order(models.Model):
     number = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -136,6 +137,7 @@ class Order(models.Model, HasAddress):
     shipping_method = models.ForeignKey(ShippingMethod, on_delete=models.SET_NULL, null=True)
     products = models.ManyToManyField(SizeProductRelation, through='OrderSizeProductRelation')
     with_discount = models.BooleanField(default=False)
+    address = AddressField(on_delete=models.CASCADE)
 
     def __str__(self):
         return 'Order #' + str(self.pk)
@@ -153,11 +155,12 @@ class OrderSizeProductRelation(models.Model):
 
 
 
-class UserProfile(models.Model, HasAddress):
+class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone_number = PhoneNumberField(unique=True)
     score = models.PositiveIntegerField(default=0)
     joined = models.DateTimeField(auto_now_add=True)
+    address = AddressField(on_delete=models.CASCADE)
 
     def __str__(self):
         return self.user.email + ' profile'

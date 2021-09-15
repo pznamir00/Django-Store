@@ -1,22 +1,17 @@
 from rest_framework import serializers
 from .models import *
-from .helpers import ModelAutoSlugSerializer
 from drf_extra_fields.fields import Base64ImageField
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from dj_rest_auth.registration.serializers import RegisterSerializer
+from address.forms import AddressField
 
 
 
 
 
 class ExtendedRegisterSerializer(RegisterSerializer):
-    phone_number = serializers.CharField()
-    street = serializers.CharField()
-    home_number = serializers.CharField()
-    apartament_number = serializers.CharField()
-    city = serializers.CharField()
-    zip_code = serializers.CharField()
+    address = AddressField()
 
     def get_cleaned_data(self):
         #validate during registration
@@ -27,11 +22,7 @@ class ExtendedRegisterSerializer(RegisterSerializer):
             'password2': self.validated_data.get('password2', ''),
             'email': self.validated_data.get('email', ''),
             'phone_number': self.validated_data.get('phone_number', ''),
-            'street': self.validated_data.get('street', ''),
-            'home_number': self.validated_data.get('home_number', ''),
-            'apartament_number': self.validated_data.get('apartament_number', ''),
-            'city': self.validated_data.get('city', ''),
-            'zip_code': self.validated_data.get('zip_code', '')
+            'address': self.validated_data.get('address', {})
         }
 
     def save(self, request):
@@ -40,11 +31,7 @@ class ExtendedRegisterSerializer(RegisterSerializer):
         UserProfile.objects.create(
             user=user,
             phone_number=request._data['phone_number'],
-            street=request._data['street'],
-            home_number=request._data['home_number'],
-            apartament_number=request._data['apartament_number'],
-            city=request._data['city'],
-            zip_code=request._data['zip_code']
+            address=request._data['address']
         )
         return user
 
@@ -52,7 +39,7 @@ class ExtendedRegisterSerializer(RegisterSerializer):
 
 
 
-class SubCategorySerializer(ModelAutoSlugSerializer):
+class SubCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = SubCategory
         fields = ('pk', 'name', 'slug', 'category')
@@ -62,7 +49,7 @@ class SubCategorySerializer(ModelAutoSlugSerializer):
 
 
 
-class CategorySerializer(ModelAutoSlugSerializer):
+class CategorySerializer(serializers.ModelSerializer):
     subcategories = SubCategorySerializer(many=True, read_only=True)
     class Meta:
         model = Category
@@ -76,7 +63,7 @@ class CategorySerializer(ModelAutoSlugSerializer):
 class BrandSerializer(ModelAutoSlugSerializer):
     class Meta:
         model = Brand
-        fields = ('name', 'slug', 'description', 'logo')
+        fields = ('name', 'slug', 'description', 'logo',)
         read_only_fields = ('slug',)
 
 
@@ -120,7 +107,7 @@ class SizeProductRelationSerializer(serializers.ModelSerializer):
 
 
 #base serializer for ProductSimpleSerializer and ProductDetailSerializer
-class ProductSerializer(ModelAutoSlugSerializer):
+class ProductSerializer(serializers.ModelSerializer):
     #objects of SizeProductRelation instance
     sizes = SizeProductRelationSerializer(many=True)
     #only for input (which requires only base64 encoded files)
@@ -170,9 +157,11 @@ class ProductDetailSerializer(ProductSerializer):
 
     #delete sizes and pictures of instance that could update object's assets
     def __clear_sizes_and_files(self, instance):
-        for size in instance.sizes.all():
+        sizes = instance.sizes.all()
+        pictures = instance.pictures.all()
+        for size in sizes:
             size.delete()
-        for picture in instance.pictures.all():
+        for picture in pictures:
             picture.delete()
 
     def update(self, instance, validated_data):
@@ -209,7 +198,7 @@ class ShippingMethodSerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ('phone_number', 'joined', 'score', 'street', 'home_number', 'apartament_number', 'zip_code', 'city')
+        fields = ('phone_number', 'joined', 'score', 'address')
         read_only_fields = ('joined', 'score')
 
 
@@ -255,13 +244,21 @@ class CartSerializer(serializers.Serializer):
             raise serializers.ValidationError({'message': ["Cart must have 'product' field"]})
         for sample in data['products']:
             try:
-                relation = SizeProductRelation.objects.get(pk=sample['product_size_relation'])
-                if relation.quantity < sample['quantity']:
-                    raise serializers.ValidationError({'message': ["Quantity of your product in cart cannot be greater than available"]})
+                if SizeProductRelation.objects.filter(
+                    pk=sample['product_size_relation'], 
+                    quantity__gte=sample['quantity']
+                ).exists():
+                    raise serializers.ValidationError({'message': [
+                        "Quantity of your product in cart cannot be greater than available"
+                    ]})
             except KeyError:
-                raise serializers.ValidationError({'message': ["Wrong field names. Excepted only product_size_relation and quantity parameters in each sample."]})
+                raise serializers.ValidationError({'message': [
+                    "Wrong field names. Excepted only product_size_relation and quantity parameters in each sample."
+                ]})
             except ObjectDoesNotExist:
-                raise serializers.ValidationError({'message': ["This size or product does not exist"]})
+                raise serializers.ValidationError({'message': [
+                    "This size or product does not exist"
+                ]})
         return data
 
     def to_representation(self, value):
@@ -282,10 +279,11 @@ class CartSerializer(serializers.Serializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     cart = CartSerializer(required=True, write_only=True)
+    
     class Meta:
         model = Order
-        fields = ('pk', 'user', 'created_at', 'total', 'payment_method', 'shipping_method', 'cart')
-        read_only_fields = ('pk', 'created_at', 'total')
+        fields = ('number', 'user', 'created_at', 'total', 'payment_method', 'shipping_method', 'address', 'cart')
+        read_only_fields = ('number', 'created_at', 'total')
 
     def validate(self, data):
         """
@@ -293,7 +291,9 @@ class OrderSerializer(serializers.ModelSerializer):
         orders, thats why it's necessery to look up this data here
         """
         if 'payment_method' not in data or 'shipping_method' not in data:
-            raise serializers.ValidationError({'message': ["No field payment_method or shipping_method in request"]})
+            raise serializers.ValidationError({'message': [
+                "No field payment_method or shipping_method in request"
+            ]})
         return data
 
 

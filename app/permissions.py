@@ -12,6 +12,3 @@ class IsAdminUserOrReadOnly(IsAdminUser):
 class NoUpdateAndDestroyOnlyForAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         return self.request.is_superuser if request.method == 'DELETE' else True
-            
-    def has_object_permission(self, request, view, obj):
-        return self.request.is_superuser or obj.user == self.request.user

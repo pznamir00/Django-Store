@@ -11,7 +11,7 @@ urlpatterns = [
     path('api/auth/user/', UserDetailAPIView.as_view()),
     path('api/auth/', include('dj_rest_auth.urls')),
     path('api/auth/registration/', include('dj_rest_auth.registration.urls')),
-    url(r'^api/auth/password/', include('django.contrib.auth.urls')), #here you should define your own frontend url and get this fields from email
+    path('api/auth/password/', include('django.contrib.auth.urls')), #here you should define your own frontend url and get this fields from email
     path('api/cart/', CartAPIView.as_view()),
     path('api/products/', ProductAPIView.as_view()),
     path('api/products/<slug:slug>/', ProductDetailAPIView.as_view()),
