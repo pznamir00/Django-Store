@@ -5,6 +5,7 @@ from address.models import AddressField
 from autoslug import AutoSlugField
 from phonenumber_field.modelfields import PhoneNumberField
 from colorfield.fields import ColorField
+from datetime import datetime, timedelta
 import uuid
 
 
@@ -177,3 +178,23 @@ class DiscountCode(models.Model):
 
     def __str__(self):
         return self.value
+
+
+
+
+
+class Cart(models.Model):
+    number = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    expire_time = models.DateTimeField(default=datetime.now()+timedelta(days=3))
+
+    def __str__(self):
+        return self.number
+
+
+
+
+
+class CartProduct(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='products')
+    size_product_relation = models.ForeignKey(SizeProductRelation, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()

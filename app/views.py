@@ -1,4 +1,6 @@
+from django.core.exceptions import ValidationError
 from rest_framework import viewsets, generics, mixins
+from rest_framework.views import APIView
 from rest_framework.filters import SearchFilter
 from .permissions import IsAdminUserOrReadOnly, NoUpdateAndDestroyOnlyForAdmin
 from .models import *
@@ -111,21 +113,7 @@ class UserDetailAPIView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
-
-
-
-
-
-class CartAPIView(generics.RetrieveAPIView):
-    serializer_class = CartSerializer
-
-    def get(self, request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            data = serializer.data
-            return Response(data, status=200)
-        return Response(serializer.errors, status=400)
-
+    
 
 
 
@@ -192,3 +180,31 @@ class DicountCodeViewSet(viewsets.ModelViewSet):
     queryset = DiscountCode.objects.all()
     serializer_class = DiscountCodeSerializer
     permission_classes = (IsAdminUser,)
+
+
+
+
+
+class CartAPIView(generics.RetrieveAPIView, generics.CreateAPIView, APIView):
+    queryset = Cart.objects.all()
+    serializer_class = CartSerializer
+    lookup_field = 'number'
+    
+    def put(self, request):
+        cart = self.get_object()
+        data = request.data
+        data.cart = cart
+        serializer = CartProductSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors)
+
+    def delete(self, request):
+        CartProduct.objects.filter(
+            pk=request.data['size_product_relation'],
+            cart__number=request.data['number']
+        ).delete()
+        return Response('Product deleted')
+
+        

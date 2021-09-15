@@ -215,63 +215,20 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
 
 
-class CartSerializer(serializers.Serializer):
-    products = serializers.ListField(
-        child=serializers.DictField(
-            child=serializers.IntegerField(),
-            required=True
-        ),
-        required=True
-    )
+class CartProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CartProduct
+        fields = '__all__'
 
-    """
-    actually this method checks if user has appropriate data in his own cart.
-    only one allow is {
-       'products': [
-           {
-               product_size_relation: ...,
-               quantity: ...
-           },
-           ...
-       ]
-     }
-    where product_size_relation is id of SizeProductRelation instance and quantity is selected value by user
-    ! and cannot be greater than available
-    """ 
-    def validate(self, data):
-        data = dict(data)
-        if 'products' not in data:
-            raise serializers.ValidationError({'message': ["Cart must have 'product' field"]})
-        for sample in data['products']:
-            try:
-                if SizeProductRelation.objects.filter(
-                    pk=sample['product_size_relation'], 
-                    quantity__gte=sample['quantity']
-                ).exists():
-                    raise serializers.ValidationError({'message': [
-                        "Quantity of your product in cart cannot be greater than available"
-                    ]})
-            except KeyError:
-                raise serializers.ValidationError({'message': [
-                    "Wrong field names. Excepted only product_size_relation and quantity parameters in each sample."
-                ]})
-            except ObjectDoesNotExist:
-                raise serializers.ValidationError({'message': [
-                    "This size or product does not exist"
-                ]})
-        return data
 
-    def to_representation(self, value):
-        data = super(CartSerializer, self).to_representation(value)
-        for index, sample in enumerate(data['products']):
-            relation = SizeProductRelation.objects.get(pk=sample['product_size_relation'])
-            product_data = ProductSimpleSerializer(instance=relation.product).data
-            data['products'][index] = {
-                'product': product_data,
-                'size': relation.size.value,
-                'quantity': sample['quantity']
-            }
-        return data
+
+
+
+class CartSerializer(serializers.ModelSerializer):
+    products = CartProductSerializer(many=True)
+    class Meta:
+        model = Cart
+        fields = ('number', 'products',)
 
 
 
