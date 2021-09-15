@@ -2,8 +2,9 @@ from django.db import models
 from colorfield.fields import ColorField
 from django.contrib.auth.models import User
 from phonenumber_field.modelfields import PhoneNumberField
-from .helpers import ModelWithAddress
+from .helpers import HasAddress
 from django.core.validators import MaxValueValidator, MinValueValidator
+import uuid
 
 
 
@@ -126,7 +127,8 @@ class ShippingMethod(models.Model):
 
 
 
-class Order(ModelWithAddress):
+class Order(models.Model, HasAddress):
+    number = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     total = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0.01)])
@@ -151,7 +153,7 @@ class OrderSizeProductRelation(models.Model):
 
 
 
-class UserProfile(ModelWithAddress):
+class UserProfile(models.Model, HasAddress):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone_number = PhoneNumberField(unique=True)
     score = models.PositiveIntegerField(default=0)

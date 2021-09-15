@@ -9,7 +9,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.models import User
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
-from .helpers import DiscountsValidator
+from datetime import date
 
 
 
@@ -170,7 +170,12 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
             )
         order.total += float(order.payment_method.price)
         order.total += float(order.shipping_method.price)
-        discount = DiscountsValidator.get_if_exists(discount_code, DiscountCode.objects.all())
+        today = date.today()
+        discount = DiscountCode.objects.filter(
+            code=discount_code, 
+            start_date__gte=today, 
+            start_date__lte=today
+        ).first()
         if discount:
             #consider discount code if is existing and is correct
             diff = 1.0 - discount.value

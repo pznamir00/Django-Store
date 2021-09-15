@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from django.template.defaultfilters import slugify
 from django.db import models
-from datetime import date
 
 
 
@@ -21,7 +20,7 @@ class ModelAutoSlugSerializer(serializers.ModelSerializer):
 
 
 #extend for models that include address data (User and Order)
-class ModelWithAddress(models.Model):
+class HasAddress:
     street = models.CharField(max_length=128)
     home_number = models.CharField(max_length=16)
     apartament_number = models.CharField(max_length=16, blank=True, null=True)
@@ -30,13 +29,3 @@ class ModelWithAddress(models.Model):
 
 
 
-
-#check if code exists and is active
-class DiscountsValidator:
-    def get_if_exists(code, queryset):
-        res = queryset.filter(code=code)
-        if res.exists():
-            discount = res.first()
-            if discount.start_date <= date.today() <= discount.end_date:
-                return discount
-        return None
