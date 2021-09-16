@@ -25,11 +25,11 @@ class CartSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    cart = CartSerializer(required=True, write_only=True)
+    cart_number = serializers.CharField(write_only=True)
     
     class Meta:
         model = Order
-        fields = ('number', 'user', 'created_at', 'total', 'payment_method', 'shipping_method', 'address', 'cart')
+        fields = ('number', 'user', 'created_at', 'total', 'payment_method', 'shipping_method', 'address', 'cart_number')
         read_only_fields = ('number', 'created_at', 'total')
 
     def validate(self, data):
@@ -37,6 +37,10 @@ class OrderSerializer(serializers.ModelSerializer):
         Payment_method and shipping_method are not required because there is capability to delete payment and app won't be deleting
         orders, thats why it's necessery to look up this data here
         """
+        if not Cart.objects.filter(number=data['cart_number']).exists():
+            raise serializers.ValidationError({'message': [
+                "Cart not found"
+            ]})
         if 'payment_method' not in data or 'shipping_method' not in data:
             raise serializers.ValidationError({'message': [
                 "No field payment_method or shipping_method in request"

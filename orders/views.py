@@ -59,24 +59,19 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
 
     def perform_create(self, serializer):
         #cart object
-        cart = serializer.validated_data.pop('cart')
+        cart_number = serializer.validated_data.pop('cart_number')
+        cart = Cart.objects.get(number=cart_number)
         #discount code (if exists, else None)
         discount_code = serializer.validated_data.pop('discount_code') if 'discount_code' in serializer.validated_data else ''
         #start of calculating total price
         total = 0.00
         order = serializer.save(user=self.request.user, total=total)
-        for cart_product in cart['products']:
-            quantity = cart_product['quantity']
-            size_product_relation = cart_product['product_size_relation']
-            #update of quantity of those size_product_relations
-            size_product_relation.quantity -= quantity
-            size_product_relation.save()
-            #increase total
-            total += quantity * float(size_product_relation.product.price) 
+        for product in cart.products:
+            total += product.quantity * float(product.size_product_relation.product.price) 
             OrderSizeProductRelation.objects.create(
                 order=order,
-                size_product_relation=size_product_relation,
-                quantity=quantity
+                size_product_relation=product.size_product_relation,
+                quantity=product.quantity
             )
         order.total += float(order.payment_method.price)
         order.total += float(order.shipping_method.price)
