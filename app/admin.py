@@ -12,10 +12,6 @@ admin.site.register(models.Picture)
 admin.site.register(models.SizeProductRelation)
 admin.site.register(models.PaymentMethod)
 admin.site.register(models.ShippingMethod)
-admin.site.register(models.Order)
-admin.site.register(models.OrderSizeProductRelation)
-admin.site.register(models.UserProfile)
-admin.site.register(models.DiscountCode)
 
 
 

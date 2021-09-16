@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'app',
+    'orders',
+    'user',
     'rest_framework',
     'corsheaders',
     'rest_framework.authtoken',
@@ -56,6 +58,7 @@ INSTALLED_APPS = [
     'django_cleanup',
     'phonenumber_field',
     'address',
+    'django_celery_beat'
 ]
 
 MIDDLEWARE = [
@@ -100,7 +103,7 @@ REST_FRAMEWORK = {
 }
 
 REST_AUTH_REGISTER_SERIALIZERS = {
-    'REGISTER_SERIALIZER': 'app.serializers.ExtendedRegisterSerializer'
+    'REGISTER_SERIALIZER': 'user.serializers.ExtendedRegisterSerializer'
 }
 
 ACCOUNT_EMAIL_VERIFICATION = "none"

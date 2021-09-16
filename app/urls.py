@@ -1,5 +1,6 @@
 from rest_framework import routers
-from app import views
+from . import views
+from django.urls import include, path
 
 
 router = routers.SimpleRouter()
@@ -10,4 +11,9 @@ router.register('colors', views.ColorViewSet)
 router.register('sizes', views.SizeViewSet)
 router.register('payment-methods', views.PaymentMethodViewSet)
 router.register('shipping-methods', views.ShippingMethodViewSet)
-router.register('orders', views.OrderViewSet, basename='orders')
+
+urlpatterns = [
+    path('products/', views.ProductAPIView.as_view()),
+    path('products/<slug:slug>/', views.ProductDetailAPIView.as_view()),
+    path('', include(router.urls))
+]
