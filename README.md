@@ -61,11 +61,9 @@
 <h4>Orders:</h4>
 <ul>
     <li>
-        <b>api/cart/</b><br/>
-        - get products in cart<br/>
-        - data: { products: [ { product_size_relation, quantity }, ... ] }<br/>
-        - client must save id of selected products and can get and valid them in this route<br/>
-        - <b>product_size_relation</b> - id of SizeProductRelation object which indicates on selected product and size
+        <b>api/orders/cart/</b><br/>
+        - api/orders/cart/<cart_num>/add-product - add product to cart<br/>
+        - api/orders/cart/<cart_num>/remove-product - remove product from cart
     </li>
     <li>
         <b>api/products/ CRUD</b><br/>
@@ -130,4 +128,6 @@
     <li>Django Filters</li>
     <li>Django Cleanup</li>
     <li>Phonenumber Field</li>
+    <li>Django-Address</li>
+    <li>Django-Celery-Beat</li>
 </ul>
